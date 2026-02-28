@@ -1,0 +1,4 @@
+comment = 'TEE-aware cost model adjustments'
+default_version = '1.0'
+module_pathname = '$libdir/tee_cost_model'
+relocatable = true

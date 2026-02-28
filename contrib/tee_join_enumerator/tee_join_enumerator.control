@@ -1,0 +1,5 @@
+# tee_join_enumerator extension control file
+comment = 'TEE-aware join enumerator using planner hooks'
+default_version = '1.0'
+module_pathname = '$libdir/tee_join_enumerator'
+relocatable = true

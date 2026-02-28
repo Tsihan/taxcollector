@@ -1,0 +1,4 @@
+comment = 'Adaptive orchestrator that toggles TEE planner extensions based on query features'
+default_version = '1.0'
+module_pathname = '$libdir/tee_adaptive_selector'
+relocatable = true

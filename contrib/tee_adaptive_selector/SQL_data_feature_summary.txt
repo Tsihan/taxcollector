@@ -1,0 +1,79 @@
+## Method notes
+
+* Data features are derived from `pg_class.reltuples` (approx row counts),
+  `pg_total_relation_size` (bytes), `pg_constraint` (FK counts), and
+  `pg_index` (index counts). Values are estimates from catalog stats.
+* Size buckets by table row count: small <= 100k, medium 100k-1M,
+  large 1M-10M, huge > 10M.
+
+---
+
+## Database profiles
+
+### soload (Stack / so_queries)
+
+* Tables: 10
+* Total rows: ~247.9M; total size ~66.0 GB
+* Largest table share: 0.417 of total rows; largest table size ~27.4 GB
+* Size buckets: small=1, medium=1, large=2, huge=6
+* FK density: 19 FKs (1.90 per table)
+* Index density: 22 indexes (2.20 per table)
+* Avg columns per table: 6.60
+* Top tables by rows: public.comment, public.badge, public.tag_question,
+  public.so_user, public.account
+
+### tpcds10load (TPC-DS / tpcds_queries)
+
+* Tables: 25
+* Total rows: ~191.5M; total size ~35.5 GB
+* Largest table share: 0.695 of total rows; largest table size ~14.5 GB
+* Size buckets: small=14, medium=4, large=4, huge=3
+* FK density: 103 FKs (4.12 per table)
+* Index density: 141 indexes (5.64 per table)
+* Avg columns per table: 17.16
+* Top tables by rows: public.inventory, public.store_sales,
+  public.catalog_sales, public.web_sales, public.store_returns
+
+### imdbload (IMDB / ceb_queries + job_queries)
+
+* Tables: 21
+* Total rows: ~73.9M; total size ~9.5 GB
+* Largest table share: 0.487 of total rows; largest table size ~4.3 GB
+* Size buckets: small=7, medium=5, large=7, huge=2
+* FK density: 19 FKs (0.90 per table)
+* Index density: 46 indexes (2.19 per table)
+* Avg columns per table: 5.14
+* Top tables by rows: public.cast_info, public.movie_info,
+  public.movie_keyword, public.name, public.char_name
+
+---
+
+## Component combination data signatures (data-driven)
+
+* baseline (none): tiny or narrow joins on low-entropy schemas; few tables
+  touched, low join density, or low total input rows per query.
+* ce: medium-size schemas with good stats, modest join width, and high
+  selectivity; benefits when predicate selectivity drives plan choice.
+* cm: large or skewed datasets (max table share >= 0.5) where cost modeling
+  dominates; often favors big fact tables with uneven row distributions.
+* jn: join-dense schemas (FKs per table >= ~2.5) or wide join graphs; best when
+  join ordering is the primary source of variance.
+* ce_cm: analytic workloads on medium joins; aggregates/group/order/limit on
+  moderate-sized inputs; common in Stack and many TPC-DS queries.
+* ce_jn: selective predicates on moderately wide joins; useful when filters and
+  join ordering both matter but data skew is not extreme.
+* cm_jn: large, skewed, join-dense datasets; wide joins across big fact tables
+  plus many dimensions (TPC-DS signature).
+* all_three: extreme join width plus large inputs or complex subqueries;
+  requires CE, CM, and JN to cooperate (frequent in JOB wide joins).
+
+---
+
+## Data-driven mapping hints by workload
+
+* soload: large tables with moderate join density; prefer CE+CM for analytic
+  queries with aggregates/distinct, CM+JN for wide joins.
+* tpcds10load: high join density with a dominant fact table; prefer CM+JN for
+  wide joins, CE+CM for moderate join width with aggregation.
+* imdbload: medium size with low join density; prefer CE+CM for selective
+  predicates, ALL or CM+JN for the widest multi-join queries.

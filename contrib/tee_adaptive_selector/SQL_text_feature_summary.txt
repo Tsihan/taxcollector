@@ -1,0 +1,58 @@
+## Method notes
+
+* Features are extracted **only from SQL statement text**. `avg_table_ref` is an **estimated number of table references**, computed from **commas / JOINs in the FROM clause**.
+* Combination mapping: `baseline` = no component; `jn/ce/cm` = single component; `ce_jn/ce_cm/cm_jn` = two components; `all_three` = three components.
+
+---
+
+## TPC-DS (implicit joins dominate)
+
+* **baseline** (n=33, avg_table_ref 15.79): High share of **aggregation + GROUP BY + ORDER BY + LIMIT**; **subqueries** are common.
+* **jn** (n=9, avg_table_ref 9): **ORDER BY + LIMIT** in 100% of queries; **aggregation + GROUP BY** in 88.9%.
+* **ce** (n=13, avg_table_ref 8.62): High ratios of **aggregation / GROUP BY / ORDER BY / LIMIT**; **IN** in 61.5%.
+* **cm** (n=26, avg_table_ref 10.19): **aggregation / GROUP BY / ORDER BY / LIMIT** are common; **subqueries** in 61.5%.
+* **ce_jn** (n=17, avg_table_ref 9.29): High share of **LIMIT / ORDER BY / GROUP BY**; **subqueries** in 82.4%.
+* **ce_cm** (n=18, avg_table_ref 7.89): **ORDER BY + aggregation** in 100%; **LIMIT** in 88.9%; **BETWEEN** in 50%.
+* **cm_jn** (n=29, avg_table_ref 8.97): **ORDER BY + LIMIT** in 93.1%; **GROUP BY** in 82.8%; **subqueries** in 58.6%.
+* **all_three** (n=9, avg_table_ref 14.78): **ORDER BY + aggregation** in 100%; **GROUP BY** in 88.9%; relatively frequent **subqueries / LIMIT**.
+
+---
+
+## Stack / SO (all implicit joins; DISTINCT is very common)
+
+* **baseline** (n=25, avg_table_ref 9): **DISTINCT** in 100%; **aggregation** in 96%; **IN** in 40%.
+* **jn** (n=5, avg_table_ref 7): **IN + aggregation** in 100%; **GROUP BY** in 80%; **LIMIT / ORDER BY** in 40%.
+* **ce** (n=23, avg_table_ref 5.96): **aggregation** in 100%; **IN** in 65.2%.
+* **cm** (n=19, avg_table_ref 7.05): **aggregation** in 100%; **IN** in 84.2%; **GROUP BY** in 52.6%; **DISTINCT** in 47.4%.
+* **ce_jn** (n=27, avg_table_ref 6.85): **aggregation** in 100%; **DISTINCT** in 55.6%; **IN** in 44.4%.
+* **ce_cm** (n=51, avg_table_ref 8.04): **aggregation** in 82.4%; **IN** in 56.9%; **DISTINCT** in 52.9%.
+* **cm_jn** (n=1, avg_table_ref 4): Single query with **DISTINCT + aggregation + implicit joins**.
+* **all_three** (n=9, avg_table_ref 5.56): **aggregation** in 100%; **DISTINCT** in 55.6%.
+
+---
+
+## CEB (all combinations show IN + aggregation + implicit joins)
+
+* **baseline** (n=57, avg_table_ref 11.21): Main differences are **not** in additional structural features.
+* **jn** (n=6, avg_table_ref 9.33): Similar to baseline.
+* **ce** (n=22, avg_table_ref 9.91): **GROUP BY** in 81.8%.
+* **cm** (n=18, avg_table_ref 10): **GROUP BY** in 66.7%.
+* **ce_jn** (n=18, avg_table_ref 9.78): Similar to baseline.
+* **ce_cm** (n=19, avg_table_ref 11): **GROUP BY** in 42.1%.
+* **cm_jn** (n=11, avg_table_ref 7.64): Relatively **fewer table references**.
+* **all_three** (n=9, avg_table_ref 11): Similar to baseline.
+
+---
+
+## JOB
+
+* **baseline** (n=42, avg_table_ref 8.36): **aggregation + implicit joins** in 100%; **LIKE** is high; **IN** is moderate.
+* **jn** (n=4, avg_table_ref 7.5): **aggregation + implicit joins** in 100%; **IN/LIKE** each appear in roughly half of queries.
+* **ce** (n=1, avg_table_ref 14): Single sample; **IN + LIKE + aggregation + implicit joins** all present; weak representativeness.
+* **cm** (n=15, avg_table_ref 9.2): **aggregation + implicit joins** in 100%; **LIKE** very high; **IN** relatively high; some **BETWEEN**.
+* **ce_jn** (n=8, avg_table_ref 10): **aggregation + implicit joins** in 100%; **IN/LIKE** are medium-to-high.
+* **ce_cm** (n=17, avg_table_ref 10.41): **aggregation + implicit joins** in 100%; **IN** extremely high; **LIKE** high.
+* **cm_jn** (n=8, avg_table_ref 6.12): **aggregation + implicit joins** in 100%; **LIKE** moderate.
+* **all_three** (n=18, avg_table_ref 7.67): **aggregation + implicit joins** in 100%; **LIKE** slightly higher; **IN** moderate.
+
+**Overall**, in the JOB workload, almost all combinations use **implicit joins (comma-separated FROM)** and **aggregation**; **LIKE** and **IN** are the main semantic features that differentiate combinations.

@@ -1,0 +1,4 @@
+comment = 'TEE-aware cardinality heuristics (SEV-SNP)'
+default_version = '1.0'
+module_pathname = '$libdir/tee_cardinality_estimation'
+relocatable = true
