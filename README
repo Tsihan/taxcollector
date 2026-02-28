@@ -1,27 +1,107 @@
-PostgreSQL Database Management System
-=====================================
+# TaxCollector: CVM-Friendly Query Optimization for PostgreSQL
 
-This directory contains the source code distribution of the PostgreSQL
-database management system.
+**TaxCollector** is a PostgreSQL optimizer enhancement designed for Confidential VMs (CVMs), e.g., AMD SEV-SNP. Instead of changing the security mechanisms, TaxCollector **calibrates optimizer signals and search behavior** so PostgreSQL is more likely to choose **CVM-friendly** execution plans and avoid patterns that become fragile under encrypted execution.
 
-PostgreSQL is an advanced object-relational database management system
-that supports an extended subset of the SQL standard, including
-transactions, foreign keys, subqueries, triggers, user-defined types
-and functions.  This distribution also contains C language bindings.
+In CVMs we mainly target three recurring sources of overhead:
+- **RMP checks** (additional checks along memory access paths)
+- **Memory-encryption wall** (bandwidth/latency bottlenecks when execution becomes DRAM-bound)
+- **I/O bounce buffers** (extra DMA/SWIOTLB bounce-copy/mapping overhead)
 
-PostgreSQL has many language interfaces, many of which are listed here:
+TaxCollector therefore explicitly reasons about three “pressure” units during planning:
+- `pages`: a proxy for I/O traffic and page churn
+- `rows` and `width`: proxies for encrypted memory footprint and memory traffic
 
-	https://www.postgresql.org/download/
+---
 
-See the file INSTALL for instructions on how to build and install
-PostgreSQL.  That file also lists supported operating systems and
-hardware platforms and contains information regarding any other
-software packages that are required to build or run the PostgreSQL
-system.  Copyright and license information can be found in the
-file COPYRIGHT.  A comprehensive documentation set is included in this
-distribution; it can be read as described in the installation
-instructions.
+## Components
 
-The latest version of this software may be obtained at
-https://www.postgresql.org/download/.  For more information look at our
-web site located at https://www.postgresql.org/.
+TaxCollector consists of **three lightweight optimizer calibration components** plus **one controller**. To use it, you must **compile and enable all four modules** in addition to PostgreSQL itself:
+
+### 1) CE — Inflation-based Cardinality Estimation
+When an intermediate result’s working set is likely to exceed an effective cache/working-set budget, **CE conservatively inflates** internal size signals (`rows/width/pages`) so the optimizer is less likely to pick plans that look cheap in KVM but trigger overflow-driven churn in CVMs (which often amplifies RMP/bounce-buffer/memory-wall overheads together).
+
+### 2) CM — TEE-aware Cost Model
+**CM** keeps PostgreSQL’s cost structure but adds calibrated **CVM taxes** for operators and access patterns that are disproportionately expensive in encrypted settings (e.g., pointer-chasing and cache-unfriendly paths). This prevents the optimizer from over-preferring CVM-fragile operator choices.
+
+### 3) JN — Risk-based DP Join Enumerator
+**JN** addresses a key mismatch in DP join enumeration: CVM penalties often become apparent only later, but early DP pruning is irreversible. JN adds a lightweight **risk score** in early DP layers and performs **beam pruning**, avoiding CVM-fragile join sequences before they dominate the DP table.
+
+### 4) AS — Adaptive Selector (controller)
+**AS** is a controller that decides whether to enable {CE, CM, JN} **per query** rather than always enabling everything. It combines:
+- a rule-based selector (feature-driven decision), and
+- a lightweight cache to reuse the best component combination for repeated queries (reducing planning overhead and avoiding over-calibration).
+
+---
+
+## Code Layout
+
+All four modules live under the PostgreSQL source tree:
+
+- `contrib/tee_cardinality_estimation`
+- `contrib/tee_cost_model`
+- `contrib/tee_join_enumerator`
+- `contrib/tee_adaptive_selector`
+
+---
+
+## Build & Enable
+
+> In addition to PostgreSQL itself, you must compile and enable the four modules above.
+
+### 1) Build / Install the 4 modules
+
+If you are building in-tree (inside the PostgreSQL source tree), you can compile and install each module like:
+
+```bash
+cd contrib/tee_cardinality_estimation && make && make install
+cd contrib/tee_cost_model && make && make install
+cd contrib/tee_join_enumerator && make && make install
+cd contrib/tee_adaptive_selector && make && make install
+```
+
+> Notes:
+> - The exact build flow depends on whether you use in-tree builds or PGXS.
+> - If you build against an external PostgreSQL installation, ensure `PG_CONFIG` / `PATH` points to the intended `pg_config` and server installation.
+
+### 2) Enable via `shared_preload_libraries`
+
+In `postgresql.conf`, add (a restart is required after changing this):
+
+```conf
+# shared_preload_libraries = 'pg_hint_plan,tee_cardinality_estimation,tee_cost_model, tee_join_enumerator,tee_adaptive_selector'  # (change requires restart)
+```
+
+### 3) Restart PostgreSQL
+
+Restart the server so the preloaded modules take effect. Then verify:
+
+```sql
+SHOW shared_preload_libraries;
+```
+
+---
+
+## Workflow (Offline tuning + Online execution)
+
+TaxCollector follows an “offline tuning + online execution” workflow:
+- **Offline**: run workloads under KVM and CVM, collect query/operator statistics, and calibrate parameters used by the components.
+- **Online**: for each incoming query, AS first checks its cache; if there is a hit, it reuses the historically best component combination. Otherwise, AS selects a {CE, CM, JN} configuration for this query, plans and executes it, and records outcomes for future reuse.
+
+---
+
+## Acknowledgements
+
+We thank **Bergmann et al.** for providing a modified **PostgreSQL 16.9** codebase that makes it easier to develop and experiment with optimizer components on top of PostgreSQL:
+
+```bibtex
+@article{Bergmann2025Elephant,
+  title={An elephant under the microscope: Analyzing the interaction of optimizer components in postgresql},
+  author={Bergmann, Rico and Hartmann, Claudio and Habich, Dirk and Lehner, Wolfgang},
+  journal={Proceedings of the ACM on Management of Data},
+  volume={3},
+  number={1},
+  pages={1--28},
+  year={2025},
+  publisher={ACM New York, NY, USA}
+}
+```
