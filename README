@@ -89,6 +89,16 @@ TaxCollector follows an “offline tuning + online execution” workflow:
 
 ---
 
+## Evaluation Data
+
+We store our **knob-tuning results** under:
+
+- `/evaluation_data`
+
+This folder contains the parameter-sweep / tuning outputs used in our evaluation.
+
+---
+
 ## Acknowledgements
 
 We thank **Bergmann et al.** for providing a modified **PostgreSQL 16.9** codebase that makes it easier to develop and experiment with optimizer components on top of PostgreSQL:
