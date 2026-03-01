@@ -97,6 +97,17 @@ We store our **knob-tuning results** under:
 
 This folder contains the parameter-sweep / tuning outputs used in our evaluation.
 
+
+---
+
+## Benchmarks
+
+We store JOB, CEB, Stack, and TPC-DS queries we use under:
+
+- `/workloads`
+
+This folder contains queries we use in our evaluation.
+
 ---
 
 ## Acknowledgements
