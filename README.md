@@ -68,7 +68,8 @@ cd contrib/tee_adaptive_selector && make && make install
 In `postgresql.conf`, add (a restart is required after changing this):
 
 ```conf
-# shared_preload_libraries = 'pg_hint_plan,tee_cardinality_estimation,tee_cost_model, tee_join_enumerator,tee_adaptive_selector'  # (change requires restart)
+# Example (change requires restart):
+# shared_preload_libraries = 'pg_hint_plan,tee_cardinality_estimation,tee_cost_model,tee_join_enumerator,tee_adaptive_selector'
 ```
 
 ### 3) Restart PostgreSQL
@@ -97,7 +98,6 @@ We store our **knob-tuning results** under:
 
 This folder contains the parameter-sweep / tuning outputs used in our evaluation.
 
-
 ---
 
 ## Benchmarks
@@ -106,7 +106,11 @@ We store JOB, CEB, Stack, and TPC-DS queries we use under:
 
 - `/workloads`
 
-This folder contains queries we use in our evaluation.
+**Workload sources:**
+- **Stack** workload is based on the workload used by **Bao** (SIGMOD 2021).
+- **CEB** (Cardinality Estimation Benchmark) queries follow the setup used by **Flow-Loss** (PVLDB 2021).
+
+See *Workload References* below for BibTeX entries.
 
 ---
 
@@ -124,5 +128,36 @@ We thank **Bergmann et al.** for providing a modified **PostgreSQL 16.9** codeba
   pages={1--28},
   year={2025},
   publisher={ACM New York, NY, USA}
+}
+```
+
+---
+
+## Workload References
+
+```bibtex
+@inproceedings{marcus2021bao,
+  title={Bao: Making learned query optimization practical},
+  author={Marcus, Ryan and Negi, Parimarjan and Mao, Hongzi and Tatbul, Nesime and Alizadeh, Mohammad and Kraska, Tim},
+  booktitle={Proceedings of the 2021 International Conference on Management of Data},
+  pages={1275--1288},
+  year={2021}
+}
+
+@article{flowloss,
+  author = {Negi, Parimarjan and Marcus, Ryan and Kipf, Andreas and Mao, Hongzi and Tatbul, Nesime and Kraska, Tim and Alizadeh, Mohammad},
+  title = {Flow-Loss: Learning Cardinality Estimates That Matter},
+  year = {2021},
+  issue_date = {July 2021},
+  publisher = {VLDB Endowment},
+  volume = {14},
+  number = {11},
+  issn = {2150-8097},
+  url = {https://doi.org/10.14778/3476249.3476259},
+  doi = {10.14778/3476249.3476259},
+  journal = {Proc. VLDB Endow.},
+  month = {jul},
+  pages = {2019–2032},
+  numpages = {14}
 }
 ```
