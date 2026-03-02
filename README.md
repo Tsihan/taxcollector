@@ -44,6 +44,46 @@ All four modules live under the PostgreSQL source tree:
 
 ---
 
+---
+
+## Build PostgreSQL (TaxCollector Fork) from Source
+
+This repository vendors PostgreSQL and places TaxCollector modules under `contrib/`. A typical end-to-end build flow is:
+
+```bash
+# 1) Get the code
+git clone git@github.com:Tsihan/taxcollector.git
+cd taxcollector
+
+# 2) Configure & build PostgreSQL
+./configure --prefix=/YourHomeDirectory/taxcollector
+make
+make install
+
+# 3) Add the installed PostgreSQL to PATH (so pg_config/psql/pg_ctl are found)
+echo 'export PATH=/YourHomeDirectory/taxcollector/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+
+# 4) Initialize and start a local database cluster
+pg_ctl -D /YourHomeDirectory/databases initdb
+pg_ctl -D /YourHomeDirectory/databases -l logfile start
+```
+
+### Disable GEQO (Genetic Query Optimizer)
+
+Disable GEQO in the configuration file at:
+
+- `/YourHomeDirectory/databases/postgresql.conf`
+
+Add (or edit) the following line:
+
+```conf
+geqo = off
+```
+
+Then restart PostgreSQL for the change to take effect.
+
+
 ## Build & Enable
 
 > In addition to PostgreSQL itself, you must compile and enable the four modules above.
