@@ -15,7 +15,7 @@ TaxCollector therefore explicitly reasons about three “pressure” units durin
 <p align="center">
   <img src="assets/taxcollector.png" alt="Adding Taxes in a good way improve the performance in TEEs." width="400 " />
 </p>
----
+
 
 ## Components
 
