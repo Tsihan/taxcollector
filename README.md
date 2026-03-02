@@ -11,6 +11,10 @@ TaxCollector therefore explicitly reasons about three “pressure” units durin
 - `pages`: a proxy for I/O traffic and page churn
 - `rows` and `width`: proxies for encrypted memory footprint and memory traffic
 
+
+<p align="center">
+  <img src="assets/taxcollector.png" alt="Adding Taxes in a good way improve the performance in TEEs." width="400 " />
+</p>
 ---
 
 ## Components
